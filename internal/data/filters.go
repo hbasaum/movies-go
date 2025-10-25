@@ -6,6 +6,14 @@ import (
 	"github.com/hbasaum/lets-go-further/internal/validator"
 )
 
+type Metadata struct {
+	CurrentPage  int `json:"current_page,omitzero"`
+	PageSize     int `json:"page_size,omitzero"`
+	FirstPage    int `json:"first_page,omitzero"`
+	LastPage     int `json:"last_page,omitzero"`
+	TotalRecords int `json:"total_records,omitzero"`
+}
+
 type Filters struct {
 	Page         int
 	PageSize     int
@@ -46,4 +54,18 @@ func (f Filters) limit() int {
 
 func (f Filters) offset() int {
 	return (f.Page - 1) * f.PageSize
+}
+
+func calculateMetadata(TotalRecords, page, PageSize int) Metadata {
+	if TotalRecords == 0 {
+		return Metadata{}
+	}
+
+	return Metadata{
+		CurrentPage:  page,
+		PageSize:     PageSize,
+		FirstPage:    1,
+		LastPage:     (TotalRecords + PageSize - 1) / PageSize,
+		TotalRecords: TotalRecords,
+	}
 }
