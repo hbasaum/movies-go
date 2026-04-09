@@ -175,9 +175,41 @@ func (app *application) requirePermission(code string, next http.HandlerFunc) ht
 	return app.requireActivatedUser(fn)
 }
 
+// There are a couple of additional things to point out here:
+
+// • When we respond to a preflight request we deliberately send the HTTP status 200 OK rather than 204 No Content
+//  — even though there is no response body. This is because certain browser versions may not support 204 No Content
+//  responses and subsequently block the real request.
+
+// • If you allow the Authorization header in cross-origin requests,
+// like we are in the code above, it’s important to not set the wildcard Access-Control-Allow-Origin: * header or reflect
+// the Origin header without checking against a list of trusted origins. Otherwise, this would leave your service vulnerable
+// to a distributed brute-force attack against any authentication credentials that are passed in that header.
+
 func (app *application) enableCORS(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Add("Vary", "Origin")
+		w.Header().Add("Vary", "Access-Control-Request-Method")
+		w.Header().Add("Vary", "Access-Control-Request-Headers")
+
+		origin := r.Header.Get("Origin")
+
+		if origin != "" {
+			for i := range app.config.cors.trustedOrigins {
+				if origin == app.config.cors.trustedOrigins[i] {
+					w.Header().Set("Access-Control-Allow-Origin", origin)
+
+					if r.Method == http.MethodOptions && r.Header.Get("Access-Control-Request-Method") != "" {
+						w.Header().Set("Access-Control-Allow-Methods", "OPTIONS, POST, PUT, PATCH, DELETE")
+						w.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type")
+
+						w.WriteHeader(http.StatusOK)
+						return
+					}
+					break
+				}
+			}
+		}
 
 		next.ServeHTTP(w, r)
 	})
