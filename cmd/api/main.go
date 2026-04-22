@@ -15,10 +15,13 @@ import (
 
 	"github.com/hbasaum/lets-go-further/internal/data"
 	"github.com/hbasaum/lets-go-further/internal/mailer"
+	"github.com/hbasaum/lets-go-further/internal/vcs"
 	_ "github.com/lib/pq"
 )
 
-const version = "1.0.0"
+var (
+	version = vcs.Version()
+)
 
 type config struct {
 	port int
