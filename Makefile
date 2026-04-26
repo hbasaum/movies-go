@@ -29,9 +29,17 @@ build/api:
 # PRODUCTION
 # ==================================================================================== #
 
-production_host_ip = '141.148.195.43'
+production_host = greenlight@141.148.195.43
+production_ssh_key = ~/.ssh/orc-amd.key
 
 ## production/connect: connect to the production server
 .PHONY: production/connect
 production/connect:
-ssh -i ~/.ssh/orc-amd.key greenlight@141.148.195.43
+	ssh -i $(production_ssh_key) $(production_host)
+
+## production/deploy/api: deploy the api to production
+.PHONY: production/deploy/api
+production/deploy/api:
+	rsync -P -e "ssh -i $(production_ssh_key)" ./bin/linux_amd64/api $(production_host):~
+	rsync -rP --delete -e "ssh -i $(production_ssh_key)" ./migrations $(production_host):~
+	ssh -i $(production_ssh_key) -t $(production_host) 'migrate -path ~/migrations -database $$GREENLIGHT_DB_DSN up'
